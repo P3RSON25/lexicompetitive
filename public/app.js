@@ -111,10 +111,6 @@ function escapeHtml(value) {
   }[character]));
 }
 
-function pluralize(value, singular = 'line', plural = `${singular}s`) {
-  return `${value} ${value === 1 ? singular : plural}`;
-}
-
 function comboSoundName(combo) {
   if (combo >= 5) return 'comboFivePlus';
   return {
@@ -208,10 +204,10 @@ function renderOpponentCards(state) {
     card.innerHTML = `
       <div class="opponent-heading">
         <strong>${escapeHtml(player.name)}</strong>
-        <span>${player.status === 'playing' ? `${health}% health` : player.status}</span>
+        <span>${player.status === 'playing' ? `${health}%` : 'OUT'}</span>
       </div>
       <div class="opponent-track"><span style="width:${health}%"></span></div>
-      <div class="opponent-meta"><span>${player.lockedGarbage}/20 locked</span><span class="pending-label">+${player.pendingGarbage} pending</span></div>
+      <div class="opponent-meta"><span>${player.lockedGarbage}/20</span><span class="pending-label">+${player.pendingGarbage}</span></div>
       <div class="opponent-pending-track"><span style="width:${pending}%"></span></div>
     `;
     return card;
@@ -227,7 +223,7 @@ function renderPlayers(state) {
     row.dataset.status = player.status;
     if (player.id === selfId) row.dataset.self = 'true';
     row.innerHTML = `
-      <div><strong>${escapeHtml(player.name)}</strong><span>${player.status === 'playing' ? `${player.lockedGarbage}/20 locked` : player.status}</span></div>
+      <div><strong>${escapeHtml(player.name)}</strong><span>${player.status === 'playing' ? `${player.lockedGarbage}/20` : 'OUT'}</span></div>
       <b>${player.pendingGarbage}</b>
     `;
     return row;
@@ -254,8 +250,8 @@ function renderState(state) {
   $('#room-code').textContent = state.code;
   $('#room-status').textContent = state.status.toUpperCase();
   $('#arena-state').textContent = state.status === 'playing'
-    ? (self?.status === 'eliminated' ? 'ELIMINATED' : 'LIVE PVP')
-    : state.status === 'finished' ? 'MATCH COMPLETE' : 'WAITING FOR PLAYERS';
+    ? (self?.status === 'eliminated' ? 'OUT' : 'LIVE')
+    : state.status === 'finished' ? 'DONE' : 'WAITING';
   $('#start-button').hidden = state.hostId !== socket.id || state.status !== 'lobby';
   $('#start-button').disabled = state.players.length < 2;
   $('#word-input').disabled = !canPlay;
@@ -264,7 +260,7 @@ function renderState(state) {
   renderFragments(self?.fragments || []);
   renderBoard(lockedGarbage);
   $('#locked-lines').textContent = lockedGarbage;
-  $('#health-percent').textContent = `${healthPercent(lockedGarbage)}% HEALTH`;
+  $('#health-percent').textContent = `${healthPercent(lockedGarbage)}%`;
   $('#pending-count').textContent = pendingGarbage;
   $('#pending-fill').style.height = `${Math.min(100, Math.round((pendingGarbage / ROWS) * 100))}%`;
   $('#combo').textContent = self?.combo || 0;
@@ -286,23 +282,23 @@ function renderState(state) {
 function updatePendingTimer() {
   const pendingLockAt = currentState?.self?.pendingGarbageLockAt;
   if (!currentState?.self || currentState.self.pendingGarbage <= 0 || !pendingLockAt) {
-    $('#pending-timer').textContent = 'CLEAR TO HOLD';
+    $('#pending-timer').textContent = 'CLEAR';
     return;
   }
   const remaining = Math.max(0, pendingLockAt - Date.now());
-  $('#pending-timer').textContent = `LOCKS IN ${(remaining / 1000).toFixed(1)}S`;
+  $('#pending-timer').textContent = `${(remaining / 1000).toFixed(1)}S`;
 }
 
 function errorLabel(error) {
   return {
-    invalid_word: 'That word is not in the local dictionary.',
-    dictionary_unavailable: 'The local dictionary could not be loaded.',
-    no_fragment: 'That word does not contain one of your grams.',
-    need_opponent: 'A PVP room needs at least one opponent.',
-    invalid_target_mode: 'Choose a valid targeting mode.',
-    room_finished: 'The match is already over.',
-    room_not_playing: 'The battle is not live. Wait for the host to start it.',
-    player_not_playing: 'You are out of this match.',
+    invalid_word: 'NOT A WORD',
+    dictionary_unavailable: 'NO DICTIONARY',
+    no_fragment: 'NO MATCH',
+    need_opponent: 'NEED OPPONENT',
+    invalid_target_mode: 'BAD TARGET',
+    room_finished: 'MATCH DONE',
+    room_not_playing: 'NOT LIVE',
+    player_not_playing: 'OUT',
   }[error] || String(error || 'Request failed').replaceAll('_', ' ');
 }
 
@@ -312,35 +308,32 @@ function handleRoomResponse(response) {
 }
 
 socket.on('connect', () => {
-  if (!currentState) setStatus('Connected. Create or join a PVP room.', 'success');
+  if (!currentState) setStatus('READY', 'success');
 });
 
-socket.on('disconnect', () => setStatus('Connection lost. Reconnecting...', 'error'));
+socket.on('disconnect', () => setStatus('OFFLINE', 'error'));
 socket.on('room:state', renderState);
 
 socket.on('game:event', (event) => {
   if (event.type === 'wordAccepted') {
     playWordSounds(event);
-    const route = event.aoe
-      ? 'to every living opponent'
-      : event.targetIds?.length ? 'to one opponent' : 'into defense';
-    let message = `${event.playerName} used ${event.word}: ${pluralize(event.totalLines)} ${route}.`;
-    if (event.cancelledPending) message += ` Canceled ${pluralize(event.cancelledPending, 'pending line')}.`;
-    if (event.defendedLocked) message += ` Cleared ${pluralize(event.defendedLocked, 'locked line')}.`;
-    if (event.comboBonus) message += ` Combo +${event.comboBonus}.`;
+    let message = `${event.playerName} +${event.totalLines}${event.aoe ? ' AOE' : ''}`;
+    if (!event.outgoingLines) message += ' DEF';
+    if (event.cancelledPending) message += ` -${event.cancelledPending}`;
+    if (event.defendedLocked) message += ` /${event.defendedLocked}`;
+    if (event.comboBonus) message += ` C${event.comboBonus}`;
     addEvent(message);
   } else if (event.type === 'garbageLocked') {
     playGarbageLockedSounds(event);
-    addEvent(`${event.playerName} locked ${pluralize(event.lines)}.`);
-    if (event.eliminated) addEvent(`${event.playerName} has been eliminated.`);
+    addEvent(`${event.playerName} +${event.lines}${event.eliminated ? ' OUT' : ''}`);
   } else if (event.type === 'gameFinished') {
-    addEvent(event.winnerId ? 'The match is over.' : 'The match ended with no survivor.');
+    addEvent(event.winnerId ? 'DONE' : 'DRAW');
   } else if (event.type === 'gameStarted') {
-    addEvent('Battle started.');
+    addEvent('LIVE');
   } else if (event.type === 'playerJoined') {
-    addEvent('A new combatant joined the room.');
+    addEvent('+ PLAYER');
   } else if (event.type === 'playerLeft') {
-    addEvent('A combatant left the room.');
+    addEvent('- PLAYER');
   }
 });
 
@@ -351,9 +344,9 @@ socket.on('word:result', (result) => {
     return;
   }
   const details = result.cancelledPending
-    ? ` Canceled ${pluralize(result.cancelledPending, 'pending line')}.`
-    : result.defendedLocked ? ` Cleared ${pluralize(result.defendedLocked, 'locked line')}.` : '';
-  setStatus(`Accepted: ${pluralize(result.lines)}.${details}`, 'success');
+    ? ` -${result.cancelledPending}`
+    : result.defendedLocked ? ` /${result.defendedLocked}` : '';
+  setStatus(`+${result.lines}${details}`, 'success');
 });
 
 $('#create-form').addEventListener('submit', (event) => {
@@ -384,7 +377,7 @@ $('#leave-button').addEventListener('click', () => {
   socket.emit('room:leave');
   currentState = null;
   showLobby();
-  setStatus('You left the room.');
+  setStatus('READY');
 });
 
 targetButtons.forEach((button) => {
