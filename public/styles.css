@@ -50,7 +50,7 @@ input::placeholder { color: #000000; opacity: 0.45; }
 body.in-room .shell { width: 100%; max-width: none; min-height: 100dvh; padding: 0; }
 body.in-room .hero { display: none; }
 .hero { border-bottom: 2px solid #000000; margin-bottom: 2rem; padding-bottom: 1rem; }
-.hero h1 { margin: 0; font-size: clamp(4.5rem, 14vw, 11rem); letter-spacing: -0.12em; line-height: 0.75; }
+.hero h1 { margin: 0; font-size: clamp(2.2rem, 11vw, 9rem); letter-spacing: -0.14em; line-height: 0.8; }
 .hero p { margin: 1.2rem 0 0; font-size: 1rem; letter-spacing: 0.08em; }
 .panel { border: 2px solid #000000; background: #fafafa; }
 .lobby-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -110,6 +110,8 @@ body.in-room .hero { display: none; }
 .pending-track { display: flex; width: 24px; height: min(50vh, 490px); align-items: flex-end; border: 2px solid #000000; background: #fafafa; padding: 3px; }
 .pending-fill { width: 100%; min-height: 0; background: #000000; transition: height 200ms ease; }
 .pending-meter > span:last-child { font-size: 0.6rem; letter-spacing: 0.05em; text-align: center; }
+.combo-meter { display: flex; width: 62px; height: min(64vh, 620px); flex-direction: column; align-items: center; justify-content: center; gap: 0.65rem; }
+.combo-meter strong { font-size: 3rem; letter-spacing: -0.1em; line-height: 0.8; }
 .board-frame { position: relative; width: min(32vw, 360px); height: min(64vh, 620px); min-height: 430px; border: 3px solid #000000; background: #fafafa; }
 .tetris-board { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(10, 1fr); grid-template-rows: repeat(20, 1fr); gap: 2px; padding: 6px; background: #fafafa; }
 .board-cell { border: 1px solid #000000; background: #fafafa; }
@@ -159,15 +161,16 @@ body.in-room .hero { display: none; }
   .players-card { border-left: 0; border-top: 2px solid #000000; }
   .players-heading { justify-content: flex-start; border-bottom: 0; padding: 0; }
   .players-card > #players { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); column-gap: 1rem; }
-  .personal-stats { grid-template-columns: repeat(3, 1fr); margin-top: 1rem; }
+  .personal-stats { grid-template-columns: repeat(2, 1fr); margin-top: 1rem; }
   .board-frame { width: min(50vw, 340px); height: min(110vw, 600px); min-height: 420px; }
   .pending-meter { height: min(70vw, 600px); }
   .pending-track { height: min(54vw, 480px); }
+  .combo-meter { height: min(70vw, 600px); }
 }
 
 @media (max-width: 560px) {
   .shell { width: min(100% - 1rem, 480px); padding: 2rem 0; }
-  .hero h1 { font-size: clamp(4rem, 24vw, 7rem); }
+  .hero h1 { font-size: clamp(2.2rem, 11vw, 4rem); }
   .lobby-grid { grid-template-columns: 1fr; }
   .lobby-card { min-height: 220px; }
   .lobby-card + .lobby-card { border-top: 2px solid #000000; border-left: 0; }
@@ -181,9 +184,10 @@ body.in-room .hero { display: none; }
   .opponents { display: grid; grid-template-columns: 1fr; max-width: none; }
   .opponent-card { min-width: 0; }
   .board-zone { gap: 0.45rem; }
-  .pending-meter { width: 42px; }
-  .pending-track { width: 18px; height: min(105vw, 430px); }
-  .board-frame { width: min(68vw, 290px); height: min(136vw, 550px); min-height: 360px; border-width: 2px; }
+  .pending-meter, .combo-meter { width: 36px; }
+  .pending-track { width: 16px; height: min(100vw, 420px); }
+  .combo-meter strong { font-size: 2.3rem; }
+  .board-frame { width: min(62vw, 260px); height: min(124vw, 520px); min-height: 340px; border-width: 2px; }
   .board-overlay { padding: 0.55rem; }
   .health-readout strong { font-size: 2.1rem; }
   .word-form { display: grid; grid-template-columns: 1fr auto; }

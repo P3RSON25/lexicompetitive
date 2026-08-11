@@ -12,6 +12,7 @@ const defaultWordsFile = existsSync(configuredWordsFile) ? configuredWordsFile :
 export const config = {
   port: Number(process.env.PORT || 3000),
   wordsFile: defaultWordsFile,
+  datamuseApiBaseUrl: process.env.DATAMUSE_API_BASE_URL || 'https://api.datamuse.com/words',
   maxPlayersPerRoom: Number(process.env.MAX_PLAYERS_PER_ROOM || 8),
 };
 

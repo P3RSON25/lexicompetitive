@@ -11,4 +11,6 @@ needed. The loader accepts either:
 
 Words are normalized to lowercase and must contain only ASCII letters. There is
 no maximum word length in the loader. Words outside the loaded file are
-rejected; the game does not query a second dictionary.
+checked against Datamuse and accepted only when its first result exactly
+matches the submitted word. Exact matches are added to the server's shared
+in-memory dictionary.

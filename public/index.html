@@ -3,13 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Lexi</title>
+    <title>Lexicompetitive</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <main class="shell">
       <header class="hero">
-        <h1>LEXI</h1>
+        <h1>LEXICOMPETITIVE</h1>
         <p>PVP WORD BATTLE</p>
       </header>
 
@@ -93,6 +93,11 @@
                   </div>
                 </div>
               </div>
+
+              <div class="combo-meter" aria-label="Your combo">
+                <span class="meter-label">COMBO</span>
+                <strong id="combo">0</strong>
+              </div>
             </div>
 
             <p id="status" class="status" aria-live="polite">READY</p>
@@ -106,7 +111,6 @@
             </div>
             <div id="players"></div>
             <div class="personal-stats">
-              <div class="personal-stat"><strong id="combo">0</strong><span>COMBO</span></div>
               <div class="personal-stat"><strong id="lines-sent">0</strong><span>SENT</span></div>
               <div class="personal-stat"><strong id="words-played">0</strong><span>WORDS</span></div>
             </div>

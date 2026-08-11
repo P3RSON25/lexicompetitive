@@ -7,12 +7,16 @@ export function normalizeWord(value) {
 }
 
 export class DictionaryService {
-  constructor({ wordsFile }) {
+  constructor({ wordsFile, datamuseApiBaseUrl = 'https://api.datamuse.com/words', fetchImpl = fetch }) {
     this.wordsFile = wordsFile;
+    this.datamuseApiBaseUrl = datamuseApiBaseUrl.replace(/\/$/, '');
+    this.fetchImpl = fetchImpl;
     this.words = new Set();
     this.loadPromise = null;
     this.loadedFrom = null;
     this.loadError = null;
+    this.lookupPromises = new Map();
+    this.lookupResults = new Map();
   }
 
   async load() {
@@ -36,13 +40,55 @@ export class DictionaryService {
     return this.loadPromise;
   }
 
+  #lookupExact(word) {
+    const cached = this.lookupResults.get(word);
+    if (cached) return Promise.resolve(cached);
+
+    const pending = this.lookupPromises.get(word);
+    if (pending) return pending;
+
+    const lookup = (async () => {
+      try {
+        const url = `${this.datamuseApiBaseUrl}?sp=${encodeURIComponent(word)}&max=1`;
+        const response = await this.fetchImpl(url);
+        if (response.status !== 200) return { exact: false, unavailable: true };
+        const results = await response.json();
+        return {
+          exact: Array.isArray(results) && results[0]?.word === word,
+          unavailable: false,
+        };
+      } catch {
+        return { exact: false, unavailable: true };
+      }
+    })();
+
+    this.lookupPromises.set(word, lookup);
+    return lookup.then((result) => {
+      this.lookupPromises.delete(word);
+      this.lookupResults.set(word, result);
+      return result;
+    });
+  }
+
   async validate(value) {
     const word = normalizeWord(value);
     if (!word) return { valid: false, word: '', source: 'shape' };
 
     await this.load();
     if (this.loadError) return { valid: false, word, unavailable: true, source: 'local' };
-    return { valid: this.words.has(word), word, source: 'local' };
+    if (this.words.has(word)) return { valid: true, word, source: 'local' };
+
+    const lookup = await this.#lookupExact(word);
+    if (lookup.exact) {
+      this.words.add(word);
+      return { valid: true, word, source: 'datamuse' };
+    }
+    return {
+      valid: false,
+      word,
+      source: 'datamuse',
+      ...(lookup.unavailable ? { unavailable: true } : {}),
+    };
   }
 
   stats() {
@@ -50,6 +96,7 @@ export class DictionaryService {
       words: this.words.size,
       loadedFrom: this.loadedFrom,
       available: !this.loadError,
+      datamuseCacheEntries: this.lookupResults.size,
     };
   }
 }

@@ -32,5 +32,9 @@ window, join its code in the other, and start the game from the host window.
 With the server running, `npm run smoke` checks two Socket.io clients, room
 creation/joining, game start, and local dictionary validation.
 
-The local dictionary is authoritative. If it cannot be read, word submissions
+The local dictionary is loaded first. If it cannot be read, word submissions
 are rejected until the configured file is available.
+
+Words missing from the local dictionary are checked with Datamuse using an
+exact-match comparison. An exact result is added to the server's shared
+in-memory dictionary for all players; near matches are rejected.

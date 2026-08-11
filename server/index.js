@@ -17,6 +17,7 @@ const io = new Server(server);
 const rooms = new RoomManager({ maxPlayers: config.maxPlayersPerRoom });
 const dictionary = new DictionaryService({
   wordsFile: config.wordsFile,
+  datamuseApiBaseUrl: config.datamuseApiBaseUrl,
 });
 
 app.use(express.json());
