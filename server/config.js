@@ -1,8 +1,17 @@
-const defaultWordsFile = 'C:\\Users\\wenyu\\Downloads\\word dictionary final.json';
+import path from 'node:path';
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(here, '..');
+const externalWordsFile = 'C:\\Users\\wenyu\\Downloads\\word dictionary final.json';
+const bundledWordsFile = path.join(projectRoot, 'data', 'word dictionary final.json');
+const configuredWordsFile = process.env.WORDS_FILE || externalWordsFile;
+const defaultWordsFile = existsSync(configuredWordsFile) ? configuredWordsFile : bundledWordsFile;
 
 export const config = {
   port: Number(process.env.PORT || 3000),
-  wordsFile: process.env.WORDS_FILE || defaultWordsFile,
+  wordsFile: defaultWordsFile,
   maxPlayersPerRoom: Number(process.env.MAX_PLAYERS_PER_ROOM || 8),
 };
 

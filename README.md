@@ -20,9 +20,11 @@ npm install
 npm run dev
 ```
 
-The server uses `C:\Users\wenyu\Downloads\word dictionary final.json` by
-default. Set `WORDS_FILE` before starting the server if you need to override
-that path.
+The server prefers `C:\Users\wenyu\Downloads\word dictionary final.json` when
+that file is available. The same dictionary is bundled at
+`data/word dictionary final.json` for deployments where the Windows Downloads
+path does not exist. Set `WORDS_FILE` before starting the server to use another
+dictionary file.
 
 Open `http://localhost:3000` in two browser windows. Create a room in one
 window, join its code in the other, and start the game from the host window.
