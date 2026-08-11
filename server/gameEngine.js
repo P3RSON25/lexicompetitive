@@ -33,6 +33,8 @@ export function createPlayer(id, name, random = Math.random) {
     lockedGarbage: 0,
     pendingGarbage: 0,
     pendingGarbageLockAt: null,
+    pendingAttackerId: null,
+    pendingAttackerName: null,
     targetMode: 'ko',
     score: 0,
     wordsPlayed: 0,
@@ -67,6 +69,8 @@ export function startRoom(room, now = Date.now(), random = Math.random) {
     player.lockedGarbage = 0;
     player.pendingGarbage = 0;
     player.pendingGarbageLockAt = null;
+    player.pendingAttackerId = null;
+    player.pendingAttackerName = null;
     player.targetMode = 'ko';
     player.score = 0;
     player.wordsPlayed = 0;
@@ -105,7 +109,7 @@ function chooseTarget(room, playerId, targetMode, random) {
   });
 }
 
-function queueGarbage(player, lines, now) {
+function queueGarbage(player, lines, now, attacker) {
   if (lines <= 0 || player.status !== 'playing') return;
   if (player.pendingGarbage === 0) {
     player.pendingGarbageLockAt = now + PENDING_GARBAGE_DELAY_MS;
@@ -113,20 +117,26 @@ function queueGarbage(player, lines, now) {
     player.pendingGarbageLockAt += lines * PENDING_GARBAGE_EXTENSION_MS;
   }
   player.pendingGarbage += lines;
+  player.pendingAttackerId = attacker.id;
+  player.pendingAttackerName = attacker.name;
 }
 
 function lockPendingGarbage(player) {
   const lines = player.pendingGarbage;
-  if (lines <= 0) return 0;
+  if (lines <= 0) return { lines: 0, attackerId: null, attackerName: null };
+  const attackerId = player.pendingAttackerId;
+  const attackerName = player.pendingAttackerName;
 
   player.pendingGarbage = 0;
   player.pendingGarbageLockAt = null;
+  player.pendingAttackerId = null;
+  player.pendingAttackerName = null;
   player.lockedGarbage = Math.min(MAX_LOCKED_GARBAGE, player.lockedGarbage + lines);
   if (player.lockedGarbage >= MAX_LOCKED_GARBAGE) {
     player.status = 'eliminated';
     player.combo = 0;
   }
-  return lines;
+  return { lines, attackerId, attackerName };
 }
 
 export function setTargetMode(room, playerId, targetMode) {
@@ -175,7 +185,11 @@ export function applyWord(room, playerId, word, now = Date.now(), random = Math.
   if (pendingBefore > 0) {
     cancelledPending = Math.min(pendingBefore, totalLines);
     player.pendingGarbage -= cancelledPending;
-    if (player.pendingGarbage === 0) player.pendingGarbageLockAt = null;
+    if (player.pendingGarbage === 0) {
+      player.pendingGarbageLockAt = null;
+      player.pendingAttackerId = null;
+      player.pendingAttackerName = null;
+    }
   } else {
     defendedLocked = Math.min(lockedBefore, totalLines);
     player.lockedGarbage -= defendedLocked;
@@ -194,7 +208,7 @@ export function applyWord(room, playerId, word, now = Date.now(), random = Math.
     const target = chooseTarget(room, playerId, player.targetMode, random);
     if (target) targets = [target];
   }
-  for (const target of targets) queueGarbage(target, outgoingLines, now);
+  for (const target of targets) queueGarbage(target, outgoingLines, now, player);
 
   const event = {
     type: 'wordAccepted',
@@ -236,14 +250,16 @@ export function tickRoom(room, now = Date.now()) {
       || now < player.pendingGarbageLockAt
     ) continue;
 
-    const lines = lockPendingGarbage(player);
+    const garbage = lockPendingGarbage(player);
     events.push({
       type: 'garbageLocked',
       playerId: player.id,
       playerName: player.name,
-      lines,
+      lines: garbage.lines,
       lockedGarbage: player.lockedGarbage,
       eliminated: player.status === 'eliminated',
+      attackerId: garbage.attackerId,
+      attackerName: garbage.attackerName,
     });
   }
 

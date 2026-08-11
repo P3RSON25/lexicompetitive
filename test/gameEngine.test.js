@@ -34,6 +34,7 @@ test('one matching gram sends one pending line and rotates grams', () => {
   assert.equal(player.combo, 0);
   assert.equal(player.linesSent, 1);
   assert.equal(room.players.get('p2').pendingGarbage, 1);
+  assert.equal(room.players.get('p2').pendingAttackerId, 'p1');
   assert.equal(room.players.get('p2').pendingGarbageLockAt, 5000);
   assert.notDeepEqual(player.fragments, ['th', 'zz', 'qq']);
 });
@@ -153,6 +154,8 @@ test('pending garbage extends its timer and locks at twenty lines', () => {
 
   target.pendingGarbage = 20;
   target.pendingGarbageLockAt = 6000;
+  target.pendingAttackerId = 'p1';
+  target.pendingAttackerName = 'One';
   room.players.get('p3').status = 'eliminated';
   const events = tickRoom(room, 6000);
 
@@ -161,6 +164,8 @@ test('pending garbage extends its timer and locks at twenty lines', () => {
   assert.equal(room.status, 'finished');
   assert.equal(room.winnerId, 'p1');
   assert.deepEqual(events.map((event) => event.type), ['garbageLocked', 'gameFinished']);
+  assert.equal(events[0].attackerId, 'p1');
+  assert.equal(events[0].attackerName, 'One');
 });
 
 test('public state keeps fragments private and exposes health queues to everyone', () => {

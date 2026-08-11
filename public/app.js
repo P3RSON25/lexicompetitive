@@ -16,6 +16,63 @@ const ROWS = 20;
 const COLUMNS = 10;
 let currentState = null;
 
+const SOUND_FILES = {
+  comboFirst: 'first combo.wav',
+  comboSecond: 'second combo.wav',
+  comboThird: 'third combo.wav',
+  comboFourth: '4 combo.wav',
+  comboFivePlus: '5 and over combo.wav',
+  sentOneGram: 'sent 1gram.wav',
+  sentTwoGram: 'sent 2gram.wav',
+  sentThreeGram: 'sent 3gram.wav',
+  receiveOneGram: 'recieve 1gram pending.wav',
+  receiveTwoGram: 'recieve 2gram pending.wav',
+  receiveTwoGramCombo: 'recieve 2gram pending with combo or 3gram.wav',
+  lockedOneToThree: '1-3 locked garbage recieve.wav',
+  lockedFourToFive: '3-5 locked garbage recieve.wav',
+  lockedFivePlus: '5+ locked garbage recieve.wav',
+  pendingOverTen: 'alert pending garbage over 10.wav',
+  lockedOverFifteen: 'alert locked garbage over 15.wav',
+  invalidWord: 'not real word entered.wav',
+  joinLobby: 'join lobby.wav',
+  leaveLobby: 'leave lobby.wav',
+  kill: 'kill.wav',
+  keyPress: 'key press.wav',
+  died: 'died.wav',
+};
+
+const SOUND_VOLUMES = {
+  keyPress: 0.22,
+  invalidWord: 0.45,
+  joinLobby: 0.5,
+  leaveLobby: 0.5,
+  pendingOverTen: 0.55,
+  lockedOverFifteen: 0.6,
+  died: 0.65,
+  kill: 0.65,
+};
+
+class SoundManager {
+  constructor(files) {
+    this.files = files;
+    this.active = new Set();
+  }
+
+  play(name) {
+    const file = this.files[name];
+    if (!file) return;
+    const audio = new Audio(`/sounds/${encodeURIComponent(file)}`);
+    audio.preload = 'auto';
+    audio.volume = SOUND_VOLUMES[name] ?? 0.5;
+    this.active.add(audio);
+    audio.addEventListener('ended', () => this.active.delete(audio), { once: true });
+    const playback = audio.play();
+    if (playback?.catch) playback.catch(() => this.active.delete(audio));
+  }
+}
+
+const sounds = new SoundManager(SOUND_FILES);
+
 for (let index = 0; index < ROWS * COLUMNS; index += 1) {
   const cell = document.createElement('span');
   cell.className = 'board-cell';
@@ -56,6 +113,55 @@ function escapeHtml(value) {
 
 function pluralize(value, singular = 'line', plural = `${singular}s`) {
   return `${value} ${value === 1 ? singular : plural}`;
+}
+
+function comboSoundName(combo) {
+  if (combo >= 5) return 'comboFivePlus';
+  return {
+    1: 'comboFirst',
+    2: 'comboSecond',
+    3: 'comboThird',
+    4: 'comboFourth',
+  }[combo];
+}
+
+function playWordSounds(event) {
+  const isSender = event.playerId === socket.id;
+  const isTarget = event.targetIds?.includes(socket.id);
+
+  if (isSender) {
+    const combo = event.matched === 2 ? event.comboAfter : event.comboBonus;
+    if (combo > 0) sounds.play(comboSoundName(combo));
+    if (event.outgoingLines > 0) {
+      sounds.play({ 1: 'sentOneGram', 2: 'sentTwoGram', 3: 'sentThreeGram' }[event.matched]);
+    }
+  }
+
+  if (event.outgoingLines <= 0) return;
+
+  if (isTarget) {
+    if (event.matched === 1) {
+      sounds.play('receiveOneGram');
+    } else if (event.matched === 2 && event.comboBefore > 0) {
+      sounds.play('receiveTwoGramCombo');
+    } else if (event.matched === 2) {
+      sounds.play('receiveTwoGram');
+    } else if (event.matched === 3) {
+      sounds.play('receiveTwoGramCombo');
+    }
+  }
+}
+
+function playGarbageLockedSounds(event) {
+  if (event.playerId === socket.id) {
+    if (event.lines <= 3) sounds.play('lockedOneToThree');
+    else if (event.lines <= 5) sounds.play('lockedFourToFive');
+    else sounds.play('lockedFivePlus');
+  }
+  if (event.eliminated) {
+    if (event.playerId === socket.id) sounds.play('died');
+    if (event.attackerId === socket.id) sounds.play('kill');
+  }
 }
 
 function renderBoard(lockedGarbage = 0) {
@@ -130,6 +236,7 @@ function renderPlayers(state) {
 
 function renderState(state) {
   const previousStatus = currentState?.status;
+  const previousSelf = currentState?.self;
   currentState = state;
   showRoom();
 
@@ -138,6 +245,11 @@ function renderState(state) {
   const canChangeTarget = state.status !== 'finished' && self?.status === 'playing';
   const lockedGarbage = self?.lockedGarbage || 0;
   const pendingGarbage = self?.pendingGarbage || 0;
+
+  if (previousSelf && self) {
+    if (previousSelf.pendingGarbage <= 10 && pendingGarbage > 10) sounds.play('pendingOverTen');
+    if (previousSelf.lockedGarbage <= 15 && lockedGarbage > 15) sounds.play('lockedOverFifteen');
+  }
 
   $('#room-code').textContent = state.code;
   $('#room-status').textContent = state.status.toUpperCase();
@@ -208,6 +320,7 @@ socket.on('room:state', renderState);
 
 socket.on('game:event', (event) => {
   if (event.type === 'wordAccepted') {
+    playWordSounds(event);
     const route = event.aoe
       ? 'to every living opponent'
       : event.targetIds?.length ? 'to one opponent' : 'into defense';
@@ -217,6 +330,7 @@ socket.on('game:event', (event) => {
     if (event.comboBonus) message += ` Combo +${event.comboBonus}.`;
     addEvent(message);
   } else if (event.type === 'garbageLocked') {
+    playGarbageLockedSounds(event);
     addEvent(`${event.playerName} locked ${pluralize(event.lines)}.`);
     if (event.eliminated) addEvent(`${event.playerName} has been eliminated.`);
   } else if (event.type === 'gameFinished') {
@@ -232,6 +346,7 @@ socket.on('game:event', (event) => {
 
 socket.on('word:result', (result) => {
   if (!result.accepted) {
+    if (result.error === 'invalid_word') sounds.play('invalidWord');
     setStatus(errorLabel(result.error), 'error');
     return;
   }
@@ -243,7 +358,10 @@ socket.on('word:result', (result) => {
 
 $('#create-form').addEventListener('submit', (event) => {
   event.preventDefault();
-  socket.emit('room:create', { name: $('#create-name').value, mode: 'battle' }, handleRoomResponse);
+  socket.emit('room:create', { name: $('#create-name').value, mode: 'battle' }, (response) => {
+    if (response?.ok) sounds.play('joinLobby');
+    handleRoomResponse(response);
+  });
 });
 
 $('#join-form').addEventListener('submit', (event) => {
@@ -251,7 +369,10 @@ $('#join-form').addEventListener('submit', (event) => {
   socket.emit('room:join', {
     name: $('#join-name').value,
     code: $('#join-code').value,
-  }, handleRoomResponse);
+  }, (response) => {
+    if (response?.ok) sounds.play('joinLobby');
+    handleRoomResponse(response);
+  });
 });
 
 $('#start-button').addEventListener('click', () => {
@@ -259,6 +380,7 @@ $('#start-button').addEventListener('click', () => {
 });
 
 $('#leave-button').addEventListener('click', () => {
+  sounds.play('leaveLobby');
   socket.emit('room:leave');
   currentState = null;
   showLobby();
@@ -277,6 +399,11 @@ $('#word-form').addEventListener('submit', (event) => {
   if (!word.trim()) return;
   wordInput.value = '';
   socket.emit('word:submit', { word });
+});
+
+wordInput.addEventListener('keydown', (event) => {
+  if (event.ctrlKey || event.altKey || event.metaKey || event.key === 'Tab') return;
+  sounds.play('keyPress');
 });
 
 setInterval(updatePendingTimer, 100);
