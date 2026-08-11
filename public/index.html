@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Word Assault</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <p class="eyebrow">REAL-TIME WORD BATTLE</p>
+        <h1>Word Assault</h1>
+        <p class="lede">Find the fragments. Clear lines. Outplay the room.</p>
+      </header>
+
+      <section id="lobby" class="panel lobby-grid">
+        <form id="create-form" class="card">
+          <h2>Create a room</h2>
+          <label>Display name <input id="create-name" maxlength="20" required placeholder="Your name" /></label>
+          <label>Mode
+            <select id="create-mode">
+              <option value="battle">Battle</option>
+              <option value="clear40">Clear 40 lines</option>
+              <option value="timed2m">Two-minute sprint</option>
+            </select>
+          </label>
+          <button type="submit">Create room</button>
+        </form>
+
+        <form id="join-form" class="card">
+          <h2>Join a room</h2>
+          <label>Display name <input id="join-name" maxlength="20" required placeholder="Your name" /></label>
+          <label>Room code <input id="join-code" maxlength="5" required placeholder="ABCDE" /></label>
+          <button type="submit" class="secondary">Join room</button>
+        </form>
+      </section>
+
+      <section id="room" class="panel room-layout" hidden>
+        <div class="room-main">
+          <div class="room-heading">
+            <div>
+              <p class="eyebrow">ROOM <span id="room-code">-----</span></p>
+              <h2 id="mode-label">Lobby</h2>
+            </div>
+            <div class="room-actions">
+              <button id="start-button">Start game</button>
+              <button id="leave-button" class="secondary">Leave</button>
+            </div>
+          </div>
+          <div class="fragments" id="fragments"></div>
+          <div class="game-stats">
+            <div><span>Lines</span><strong id="lines">0</strong></div>
+            <div><span>Score</span><strong id="score">0</strong></div>
+            <div><span>Timer</span><strong id="timer">--:--</strong></div>
+          </div>
+          <form id="word-form" class="word-form">
+            <input id="word-input" autocomplete="off" placeholder="Type a word" disabled />
+            <button type="submit" disabled>Submit</button>
+          </form>
+          <p id="status" class="status">Connect to create or join a room.</p>
+          <div id="event-log" class="event-log"></div>
+        </div>
+        <aside class="players-card">
+          <p class="eyebrow">PLAYERS</p>
+          <div id="players"></div>
+        </aside>
+      </section>
+    </main>
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
