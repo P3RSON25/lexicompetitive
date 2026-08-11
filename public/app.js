@@ -189,11 +189,13 @@ function errorLabel(error) {
     need_opponent: 'A PVP room needs at least one opponent.',
     invalid_target_mode: 'Choose a valid targeting mode.',
     room_finished: 'The match is already over.',
+    room_not_playing: 'The battle is not live. Wait for the host to start it.',
     player_not_playing: 'You are out of this match.',
   }[error] || String(error || 'Request failed').replaceAll('_', ' ');
 }
 
 function handleRoomResponse(response) {
+  if (response?.state) renderState(response.state);
   if (!response?.ok) setStatus(errorLabel(response?.error), 'error');
 }
 

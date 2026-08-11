@@ -139,9 +139,13 @@ export function setTargetMode(room, playerId, targetMode) {
 }
 
 export function applyWord(room, playerId, word, now = Date.now(), random = Math.random) {
-  if (room.status !== 'playing') return { accepted: false, reason: 'room_not_playing' };
+  if (room.status !== 'playing') {
+    return { accepted: false, reason: room.status === 'finished' ? 'room_finished' : 'room_not_playing' };
+  }
   const tickEvents = tickRoom(room, now);
-  if (room.status !== 'playing') return { accepted: false, reason: 'room_not_playing', tickEvents };
+  if (room.status !== 'playing') {
+    return { accepted: false, reason: room.status === 'finished' ? 'room_finished' : 'room_not_playing', tickEvents };
+  }
   const player = room.players.get(playerId);
   if (!player || player.status !== 'playing') return { accepted: false, reason: 'player_not_playing', tickEvents };
 

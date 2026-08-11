@@ -179,3 +179,14 @@ test('public state keeps fragments private and exposes health queues to everyone
   assert.deepEqual(state.self.fragments, player.fragments);
   assert.equal(state.self.targetMode, 'equal');
 });
+
+test('word submission reports the actual room lifecycle state', () => {
+  const room = createRoom('ABCDE', 'p1', 'battle');
+  room.players.set('p1', createPlayer('p1', 'One', () => 0));
+  room.players.set('p2', createPlayer('p2', 'Two', () => 0));
+
+  assert.equal(applyWord(room, 'p1', 'the').reason, 'room_not_playing');
+  startRoom(room, 0, () => 0);
+  room.status = 'finished';
+  assert.equal(applyWord(room, 'p1', 'the').reason, 'room_finished');
+});

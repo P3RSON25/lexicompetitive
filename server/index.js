@@ -74,7 +74,7 @@ io.on('connection', (socket) => {
       const room = rooms.start(String(payload.code || '').toUpperCase(), socket.id);
       emitRoomEvent(room, { type: 'gameStarted', mode: room.mode });
       emitRoomState(room);
-      reply(callback, { ok: true });
+      reply(callback, { ok: true, status: room.status, state: publicState(room, socket.id) });
     } catch (error) {
       reply(callback, { ok: false, error: error.message || 'room_start_failed' });
     }
@@ -92,6 +92,12 @@ io.on('connection', (socket) => {
   socket.on('word:submit', async (payload = {}, callback) => {
     const room = rooms.findBySocket(socket.id);
     if (!room) return reply(callback, { ok: false, error: 'not_in_room' });
+    if (room.status !== 'playing') {
+      const error = room.status === 'finished' ? 'room_finished' : 'room_not_playing';
+      socket.emit('room:state', publicState(room, socket.id));
+      socket.emit('word:result', { accepted: false, error, roomStatus: room.status });
+      return reply(callback, { ok: false, error, roomStatus: room.status });
+    }
 
     const validation = await dictionary.validate(payload.word);
     if (!validation.valid) {
@@ -106,8 +112,9 @@ io.on('connection', (socket) => {
       emitRoomState(room);
     }
     if (!result.accepted) {
+      socket.emit('room:state', publicState(room, socket.id));
       socket.emit('word:result', { accepted: false, error: result.reason });
-      return reply(callback, { ok: false, error: result.reason });
+      return reply(callback, { ok: false, error: result.reason, roomStatus: room.status });
     }
 
     socket.emit('word:result', { accepted: true, word: validation.word, ...result.event });
