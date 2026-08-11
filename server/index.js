@@ -6,7 +6,7 @@ import { Server } from 'socket.io';
 
 import { config, modes } from './config.js';
 import { DictionaryService } from './dictionaryService.js';
-import { applyWord, publicState, tickRoom } from './gameEngine.js';
+import { applyWord, publicState, setTargetMode, tickRoom } from './gameEngine.js';
 import { RoomManager } from './roomManager.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -17,10 +17,6 @@ const io = new Server(server);
 const rooms = new RoomManager({ maxPlayers: config.maxPlayersPerRoom });
 const dictionary = new DictionaryService({
   wordsFile: config.wordsFile,
-  apiBaseUrl: config.dictionaryApiBaseUrl,
-  cacheTtlMs: config.apiCacheTtlMs,
-  unavailableCacheTtlMs: config.unavailableCacheTtlMs,
-  maxCacheEntries: config.apiCacheMaxEntries,
 });
 
 app.use(express.json());
@@ -84,6 +80,15 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('player:target', (payload = {}, callback) => {
+    const room = rooms.findBySocket(socket.id);
+    if (!room) return reply(callback, { ok: false, error: 'not_in_room' });
+    const result = setTargetMode(room, socket.id, payload.mode);
+    if (!result.accepted) return reply(callback, { ok: false, error: result.reason });
+    emitRoomState(room);
+    reply(callback, { ok: true, targetMode: result.targetMode });
+  });
+
   socket.on('word:submit', async (payload = {}, callback) => {
     const room = rooms.findBySocket(socket.id);
     if (!room) return reply(callback, { ok: false, error: 'not_in_room' });
@@ -95,7 +100,11 @@ io.on('connection', (socket) => {
       return reply(callback, { ok: false, error });
     }
 
-    const result = applyWord(room, socket.id, validation.word);
+    const result = applyWord(room, socket.id, validation.word, Date.now());
+    if (result.tickEvents?.length) {
+      for (const event of result.tickEvents) emitRoomEvent(room, event);
+      emitRoomState(room);
+    }
     if (!result.accepted) {
       socket.emit('word:result', { accepted: false, error: result.reason });
       return reply(callback, { ok: false, error: result.reason });
@@ -125,9 +134,9 @@ io.on('connection', (socket) => {
 
 setInterval(() => {
   for (const room of rooms.all()) {
-    const event = tickRoom(room);
-    if (event) {
-      emitRoomEvent(room, event);
+    const events = tickRoom(room);
+    if (events.length > 0) {
+      for (const event of events) emitRoomEvent(room, event);
       emitRoomState(room);
     }
   }

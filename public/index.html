@@ -3,68 +3,139 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Word Assault</title>
+    <title>Lexi Competitive</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <main class="shell">
       <header class="hero">
-        <p class="eyebrow">REAL-TIME WORD BATTLE</p>
-        <h1>Word Assault</h1>
-        <p class="lede">Find the fragments. Clear lines. Outplay the room.</p>
+        <p class="eyebrow">REAL-TIME WORD BATTLE ROYALE</p>
+        <h1>Lexi<span>Competitive</span></h1>
+        <p class="lede">Find the grams. Send garbage. Be the last board standing.</p>
       </header>
 
       <section id="lobby" class="panel lobby-grid">
         <form id="create-form" class="card">
-          <h2>Create a room</h2>
+          <p class="eyebrow">NEW MATCH</p>
+          <h2>Create a PVP room</h2>
           <label>Display name <input id="create-name" maxlength="20" required placeholder="Your name" /></label>
-          <label>Mode
-            <select id="create-mode">
-              <option value="battle">Battle</option>
-              <option value="clear40">Clear 40 lines</option>
-              <option value="timed2m">Two-minute sprint</option>
-            </select>
-          </label>
-          <button type="submit">Create room</button>
+          <button type="submit">Create battle room</button>
         </form>
 
         <form id="join-form" class="card">
-          <h2>Join a room</h2>
+          <p class="eyebrow">ENTER MATCH</p>
+          <h2>Join a PVP room</h2>
           <label>Display name <input id="join-name" maxlength="20" required placeholder="Your name" /></label>
           <label>Room code <input id="join-code" maxlength="5" required placeholder="ABCDE" /></label>
           <button type="submit" class="secondary">Join room</button>
         </form>
       </section>
 
-      <section id="room" class="panel room-layout" hidden>
-        <div class="room-main">
-          <div class="room-heading">
-            <div>
-              <p class="eyebrow">ROOM <span id="room-code">-----</span></p>
-              <h2 id="mode-label">Lobby</h2>
-            </div>
-            <div class="room-actions">
-              <button id="start-button">Start game</button>
-              <button id="leave-button" class="secondary">Leave</button>
-            </div>
+      <section id="room" class="game-shell" hidden>
+        <header class="game-topbar">
+          <div class="brand-lockup">
+            <p class="eyebrow">LEXI COMPETITIVE</p>
+            <h2>LAST BOARD STANDING</h2>
           </div>
-          <div class="fragments" id="fragments"></div>
-          <div class="game-stats">
-            <div><span>Lines</span><strong id="lines">0</strong></div>
-            <div><span>Score</span><strong id="score">0</strong></div>
-            <div><span>Timer</span><strong id="timer">--:--</strong></div>
+          <div class="room-readout">
+            <span>ROOM</span>
+            <strong id="room-code">-----</strong>
+            <span id="room-status">LOBBY</span>
           </div>
-          <form id="word-form" class="word-form">
-            <input id="word-input" autocomplete="off" placeholder="Type a word" disabled />
-            <button type="submit" disabled>Submit</button>
-          </form>
-          <p id="status" class="status">Connect to create or join a room.</p>
-          <div id="event-log" class="event-log"></div>
+          <div class="room-actions">
+            <button id="start-button" type="button">Start battle</button>
+            <button id="leave-button" type="button" class="secondary">Leave</button>
+          </div>
+        </header>
+
+        <div class="game-layout">
+          <aside class="left-rail">
+            <section class="rail-card target-card">
+              <p class="eyebrow">ATTACK ROUTING</p>
+              <h3>Choose your pressure</h3>
+              <div id="target-buttons" class="target-buttons" role="group" aria-label="Targeting mode">
+                <button type="button" data-target="ko" class="target-button selected">
+                  <strong>KO</strong><span>Most locked</span>
+                </button>
+                <button type="button" data-target="equal" class="target-button">
+                  <strong>EQUAL</strong><span>Least locked</span>
+                </button>
+                <button type="button" data-target="random" class="target-button">
+                  <strong>RANDOM</strong><span>Living opponent</span>
+                </button>
+              </div>
+              <p class="rail-note">Three matching grams hit every living opponent.</p>
+            </section>
+            <section class="rail-card rules-card">
+              <p class="eyebrow">MATCH RULES</p>
+              <div class="rule-line"><span>1 gram</span><strong>1 line</strong></div>
+              <div class="rule-line"><span>2 grams</span><strong>3 + combo</strong></div>
+              <div class="rule-line"><span>3 grams</span><strong>6 + combo AOE</strong></div>
+              <div class="rule-line"><span>20 locked</span><strong>ELIMINATED</strong></div>
+            </section>
+          </aside>
+
+          <section class="arena">
+            <div class="arena-heading">
+              <div>
+                <p class="eyebrow">LIVE ARENA</p>
+                <h2>Hold the line</h2>
+              </div>
+              <div class="arena-callout"><span>STATUS</span><strong id="arena-state">WAITING FOR PLAYERS</strong></div>
+            </div>
+
+            <div id="opponents" class="opponents" aria-label="Opponent boards"></div>
+
+            <div class="board-zone">
+              <div class="pending-meter" aria-label="Pending garbage">
+                <div class="pending-heading"><span>PENDING</span><strong id="pending-count">0</strong></div>
+                <div class="pending-track"><div id="pending-fill" class="pending-fill"></div></div>
+                <p id="pending-timer">CLEAR TO HOLD</p>
+              </div>
+
+              <div class="board-frame">
+                <div id="board" class="tetris-board" role="img" aria-label="Your cosmetic health board"></div>
+                <div class="board-overlay">
+                  <div class="health-readout">
+                    <span>LOCKED GARBAGE</span>
+                    <strong><span id="locked-lines">0</span><small>/20</small></strong>
+                    <em id="health-percent">100% HEALTH</em>
+                  </div>
+                  <div class="input-deck">
+                    <p class="eyebrow">YOUR GRAMS</p>
+                    <div class="fragments" id="fragments"></div>
+                    <form id="word-form" class="word-form">
+                      <label class="sr-only" for="word-input">Enter a word</label>
+                      <input id="word-input" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Type a word containing a gram" disabled />
+                      <button type="submit" disabled>Attack</button>
+                    </form>
+                    <p class="input-hint">Words are checked against the local English dictionary.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p id="status" class="status">Connect to create or join a room.</p>
+            <section class="feed-card">
+              <div class="feed-heading"><span class="eyebrow">COMBAT FEED</span><span>LIVE</span></div>
+              <div id="event-log" class="event-log"></div>
+            </section>
+          </section>
+
+          <aside class="players-card">
+            <div class="players-heading">
+              <p class="eyebrow">COMBATANTS</p>
+              <span id="player-count">0</span>
+            </div>
+            <div id="players"></div>
+            <div class="personal-stats">
+              <p class="eyebrow">YOUR RUN</p>
+              <div class="personal-stat"><span>COMBO</span><strong id="combo">0</strong></div>
+              <div class="personal-stat"><span>LINES SENT</span><strong id="lines-sent">0</strong></div>
+              <div class="personal-stat"><span>WORDS PLAYED</span><strong id="words-played">0</strong></div>
+            </div>
+          </aside>
         </div>
-        <aside class="players-card">
-          <p class="eyebrow">PLAYERS</p>
-          <div id="players"></div>
-        </aside>
       </section>
     </main>
     <script src="/socket.io/socket.io.js"></script>

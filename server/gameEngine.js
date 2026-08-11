@@ -4,13 +4,22 @@ export const FRAGMENTS = [
   'to', 'ra', 'et', 'ed', 'it', 'sa', 'em', 'ro',
 ];
 
+export const TARGET_MODES = ['ko', 'equal', 'random'];
+
+export const MAX_COMBO = 4;
+export const MAX_LOCKED_GARBAGE = 20;
+export const PENDING_GARBAGE_DELAY_MS = 4_000;
+export const PENDING_GARBAGE_EXTENSION_MS = 500;
+
+const TARGET_MODE_SET = new Set(TARGET_MODES);
 const LINE_VALUES = { 1: 1, 2: 3, 3: 6 };
 
 export function rollFragments(random = Math.random) {
   const pool = [...FRAGMENTS];
   const result = [];
   while (result.length < 3) {
-    result.push(pool.splice(Math.floor(random() * pool.length), 1)[0]);
+    const index = Math.min(pool.length - 1, Math.floor(random() * pool.length));
+    result.push(pool.splice(index, 1)[0]);
   }
   return result;
 }
@@ -20,18 +29,23 @@ export function createPlayer(id, name, random = Math.random) {
     id,
     name: name || 'Player',
     fragments: rollFragments(random),
-    linesCleared: 0,
+    combo: 0,
+    lockedGarbage: 0,
+    pendingGarbage: 0,
+    pendingGarbageLockAt: null,
+    targetMode: 'ko',
     score: 0,
-    garbage: 0,
+    wordsPlayed: 0,
+    linesSent: 0,
     status: 'playing',
   };
 }
 
-export function createRoom(code, hostId, mode) {
+export function createRoom(code, hostId, _mode = 'battle') {
   return {
     code,
     hostId,
-    mode,
+    mode: 'battle',
     status: 'lobby',
     players: new Map(),
     startedAt: null,
@@ -44,14 +58,19 @@ export function createRoom(code, hostId, mode) {
 export function startRoom(room, now = Date.now(), random = Math.random) {
   room.status = 'playing';
   room.startedAt = now;
-  room.endAt = room.mode === 'timed2m' ? now + 2 * 60 * 1000 : null;
+  room.endAt = null;
   room.winnerId = null;
   room.finishedAt = null;
   for (const player of room.players.values()) {
     player.fragments = rollFragments(random);
-    player.linesCleared = 0;
+    player.combo = 0;
+    player.lockedGarbage = 0;
+    player.pendingGarbage = 0;
+    player.pendingGarbageLockAt = null;
+    player.targetMode = 'ko';
     player.score = 0;
-    player.garbage = 0;
+    player.wordsPlayed = 0;
+    player.linesSent = 0;
     player.status = 'playing';
   }
 }
@@ -62,78 +81,196 @@ function finishRoom(room, winnerId, now) {
   room.finishedAt = now;
 }
 
-function activePlayers(room) {
+export function activePlayers(room) {
   return [...room.players.values()].filter((player) => player.status === 'playing');
+}
+
+function normalizeSubmittedWord(word) {
+  return typeof word === 'string' ? word.trim().toLowerCase() : '';
+}
+
+function chooseTarget(room, playerId, targetMode, random) {
+  const candidates = activePlayers(room).filter((candidate) => candidate.id !== playerId);
+  if (candidates.length === 0) return null;
+  if (targetMode === 'random') {
+    const index = Math.min(candidates.length - 1, Math.floor(random() * candidates.length));
+    return candidates[index];
+  }
+
+  const direction = targetMode === 'equal' ? -1 : 1;
+  return candidates.reduce((best, candidate) => {
+    const bestGarbage = best.lockedGarbage;
+    const candidateGarbage = candidate.lockedGarbage;
+    return (candidateGarbage - bestGarbage) * direction > 0 ? candidate : best;
+  });
+}
+
+function queueGarbage(player, lines, now) {
+  if (lines <= 0 || player.status !== 'playing') return;
+  if (player.pendingGarbage === 0) {
+    player.pendingGarbageLockAt = now + PENDING_GARBAGE_DELAY_MS;
+  } else {
+    player.pendingGarbageLockAt += lines * PENDING_GARBAGE_EXTENSION_MS;
+  }
+  player.pendingGarbage += lines;
+}
+
+function lockPendingGarbage(player) {
+  const lines = player.pendingGarbage;
+  if (lines <= 0) return 0;
+
+  player.pendingGarbage = 0;
+  player.pendingGarbageLockAt = null;
+  player.lockedGarbage = Math.min(MAX_LOCKED_GARBAGE, player.lockedGarbage + lines);
+  if (player.lockedGarbage >= MAX_LOCKED_GARBAGE) {
+    player.status = 'eliminated';
+    player.combo = 0;
+  }
+  return lines;
+}
+
+export function setTargetMode(room, playerId, targetMode) {
+  if (room.status === 'finished') return { accepted: false, reason: 'room_finished' };
+  const player = room.players.get(playerId);
+  if (!player || player.status !== 'playing') return { accepted: false, reason: 'player_not_playing' };
+  if (!TARGET_MODE_SET.has(targetMode)) return { accepted: false, reason: 'invalid_target_mode' };
+  player.targetMode = targetMode;
+  return { accepted: true, targetMode };
 }
 
 export function applyWord(room, playerId, word, now = Date.now(), random = Math.random) {
   if (room.status !== 'playing') return { accepted: false, reason: 'room_not_playing' };
+  const tickEvents = tickRoom(room, now);
+  if (room.status !== 'playing') return { accepted: false, reason: 'room_not_playing', tickEvents };
   const player = room.players.get(playerId);
-  if (!player || player.status !== 'playing') return { accepted: false, reason: 'player_not_playing' };
+  if (!player || player.status !== 'playing') return { accepted: false, reason: 'player_not_playing', tickEvents };
 
-  const matched = player.fragments.filter((fragment) => word.includes(fragment)).length;
-  if (matched === 0) return { accepted: false, reason: 'no_fragment' };
+  const normalizedWord = normalizeSubmittedWord(word);
+  const matched = player.fragments.filter((fragment) => normalizedWord.includes(fragment)).length;
+  if (matched === 0) return { accepted: false, reason: 'no_fragment', tickEvents };
 
-  const lines = LINE_VALUES[matched];
-  player.linesCleared += lines;
-  player.score += lines * 10;
+  const comboBefore = player.combo;
+  let comboBonus = 0;
+  if (matched === 2) {
+    player.combo = Math.min(MAX_COMBO, player.combo + 1);
+    comboBonus = player.combo;
+  } else if (matched === 3) {
+    comboBonus = player.combo;
+    player.combo = 0;
+  } else {
+    player.combo = 0;
+  }
+
+  const baseLines = LINE_VALUES[matched];
+  const totalLines = baseLines + comboBonus;
+  const pendingBefore = player.pendingGarbage;
+  const lockedBefore = player.lockedGarbage;
+  let cancelledPending = 0;
+  let defendedLocked = 0;
+
+  if (pendingBefore > 0) {
+    cancelledPending = Math.min(pendingBefore, totalLines);
+    player.pendingGarbage -= cancelledPending;
+    if (player.pendingGarbage === 0) player.pendingGarbageLockAt = null;
+  } else {
+    defendedLocked = Math.min(lockedBefore, totalLines);
+    player.lockedGarbage -= defendedLocked;
+  }
+
+  const outgoingLines = totalLines - cancelledPending;
   player.fragments = rollFragments(random);
+  player.score += totalLines;
+  player.wordsPlayed += 1;
+  player.linesSent += outgoingLines;
+
+  let targets = [];
+  if (matched === 3) {
+    targets = activePlayers(room).filter((candidate) => candidate.id !== playerId);
+  } else {
+    const target = chooseTarget(room, playerId, player.targetMode, random);
+    if (target) targets = [target];
+  }
+  for (const target of targets) queueGarbage(target, outgoingLines, now);
 
   const event = {
     type: 'wordAccepted',
     playerId,
     playerName: player.name,
-    word,
+    word: normalizedWord,
     matched,
-    lines,
-    linesCleared: player.linesCleared,
+    baseLines,
+    comboBefore,
+    comboBonus,
+    comboAfter: player.combo,
+    lines: totalLines,
+    totalLines,
+    cancelledPending,
+    defendedLocked,
+    outgoingLines,
+    targetMode: player.targetMode,
+    targetIds: targets.map((target) => target.id),
+    aoe: matched === 3,
   };
 
-  if (room.mode === 'battle') {
-    const target = activePlayers(room).find((candidate) => candidate.id !== playerId);
-    if (target) {
-      target.garbage += lines;
-      event.targetId = target.id;
-      event.targetGarbage = target.garbage;
-      if (target.garbage >= 20) {
-        target.status = 'eliminated';
-        event.eliminatedId = target.id;
-      }
-    }
-  }
-
-  if (room.mode === 'clear40' && player.linesCleared >= 40) {
-    finishRoom(room, playerId, now);
-    event.finished = true;
-  } else if (room.mode === 'battle' && player.linesCleared >= 40) {
-    finishRoom(room, playerId, now);
-    event.finished = true;
-  } else if (room.mode === 'battle' && activePlayers(room).length <= 1) {
+  if (room.status === 'playing' && activePlayers(room).length <= 1) {
     finishRoom(room, activePlayers(room)[0]?.id, now);
     event.finished = true;
   }
 
-  return { accepted: true, event, roomFinished: room.status === 'finished' };
+  return { accepted: true, event, roomFinished: room.status === 'finished', tickEvents };
 }
 
 export function tickRoom(room, now = Date.now()) {
-  if (room.status !== 'playing') return null;
-  if (room.mode === 'timed2m' && room.endAt && now >= room.endAt) {
-    finishRoom(room, null, now);
-    return { type: 'timeExpired' };
+  if (room.status !== 'playing') return [];
+  const events = [];
+
+  for (const player of room.players.values()) {
+    if (
+      player.status !== 'playing'
+      || player.pendingGarbage <= 0
+      || player.pendingGarbageLockAt === null
+      || now < player.pendingGarbageLockAt
+    ) continue;
+
+    const lines = lockPendingGarbage(player);
+    events.push({
+      type: 'garbageLocked',
+      playerId: player.id,
+      playerName: player.name,
+      lines,
+      lockedGarbage: player.lockedGarbage,
+      eliminated: player.status === 'eliminated',
+    });
   }
-  return null;
+
+  if (events.length > 0 && activePlayers(room).length <= 1) {
+    finishRoom(room, activePlayers(room)[0]?.id, now);
+    events.push({
+      type: 'gameFinished',
+      winnerId: room.winnerId,
+    });
+  }
+
+  return events;
+}
+
+function publicPlayer(player) {
+  return {
+    id: player.id,
+    name: player.name,
+    combo: player.combo,
+    lockedGarbage: player.lockedGarbage,
+    pendingGarbage: player.pendingGarbage,
+    pendingGarbageLockAt: player.pendingGarbageLockAt,
+    score: player.score,
+    wordsPlayed: player.wordsPlayed,
+    linesSent: player.linesSent,
+    status: player.status,
+  };
 }
 
 export function publicState(room, selfId = null) {
-  const players = [...room.players.values()].map((player) => ({
-    id: player.id,
-    name: player.name,
-    linesCleared: player.linesCleared,
-    score: player.score,
-    garbage: player.garbage,
-    status: player.status,
-  }));
+  const players = [...room.players.values()].map(publicPlayer);
   const self = room.players.get(selfId);
   return {
     code: room.code,
@@ -144,6 +281,6 @@ export function publicState(room, selfId = null) {
     endAt: room.endAt,
     winnerId: room.winnerId,
     players,
-    self: self ? { ...self, fragments: [...self.fragments] } : null,
+    self: self ? { ...publicPlayer(self), fragments: [...self.fragments], targetMode: self.targetMode } : null,
   };
 }

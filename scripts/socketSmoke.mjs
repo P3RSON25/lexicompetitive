@@ -18,15 +18,19 @@ function ack(socket, event, payload) {
 
 try {
   await Promise.all([connected(first), connected(second)]);
-  const created = await ack(first, 'room:create', { name: 'Alice', mode: 'clear40' });
+  const created = await ack(first, 'room:create', { name: 'Alice', mode: 'battle' });
   assert.equal(created.ok, true);
   const joined = await ack(second, 'room:join', { name: 'Bob', code: created.code });
   assert.equal(joined.ok, true);
   const started = await ack(first, 'room:start', { code: created.code });
   assert.equal(started.ok, true);
 
+  const targetMode = await ack(first, 'player:target', { mode: 'random' });
+  assert.equal(targetMode.ok, true);
+  assert.equal(targetMode.targetMode, 'random');
+
   const result = new Promise((resolve) => first.once('word:result', resolve));
-  first.emit('word:submit', { word: 'aardvark' });
+  first.emit('word:submit', { word: 'a' });
   const wordResult = await result;
   assert.equal(wordResult.accepted, false);
   assert.equal(wordResult.error, 'no_fragment');

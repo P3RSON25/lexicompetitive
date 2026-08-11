@@ -8,4 +8,5 @@ the `WORDS_FILE` environment variable if needed. The loader accepts either:
 - An array of word strings.
 
 Words are normalized to lowercase and must contain only ASCII letters. There is
-no maximum word length in the loader.
+no maximum word length in the loader. Words outside the loaded file are
+rejected; the game does not query a second dictionary.

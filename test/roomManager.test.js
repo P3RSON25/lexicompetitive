@@ -22,3 +22,12 @@ test('leaving promotes a new host and removes empty rooms', () => {
   manager.remove('socket-b');
   assert.equal([...manager.all()].length, 0);
 });
+
+test('PVP rooms require an opponent before the host can start', () => {
+  const manager = new RoomManager({ random: () => 0 });
+  const room = manager.create('socket-a', 'Alice', 'battle');
+
+  assert.throws(() => manager.start(room.code, 'socket-a'), /need_opponent/);
+  manager.join(room.code, 'socket-b', 'Bob');
+  assert.equal(manager.start(room.code, 'socket-a').status, 'playing');
+});
