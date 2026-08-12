@@ -29,11 +29,11 @@ test('one matching gram sends one pending line and rotates grams', () => {
 
   assert.equal(result.accepted, true);
   assert.equal(result.event.matched, 1);
-  assert.equal(result.event.totalLines, 1);
-  assert.equal(result.event.outgoingLines, 1);
+  assert.equal(result.event.totalLines, 2);
+  assert.equal(result.event.outgoingLines, 2);
   assert.equal(player.combo, 0);
-  assert.equal(player.linesSent, 1);
-  assert.equal(room.players.get('p2').pendingGarbage, 1);
+  assert.equal(player.linesSent, 2);
+  assert.equal(room.players.get('p2').pendingGarbage, 2);
   assert.equal(room.players.get('p2').pendingAttackerId, 'p1');
   assert.equal(room.players.get('p2').pendingGarbageLockAt, 5000);
   assert.notDeepEqual(player.fragments, ['th', 'zz', 'qq']);
@@ -90,13 +90,23 @@ test('words made only from held grams deal half attack rounded down', () => {
   assert.equal(exact.event.matched, 2);
   assert.equal(exact.event.rawLines, 4);
   assert.equal(exact.event.gramOnly, true);
+  assert.equal(exact.event.extraLetters, 0);
   assert.equal(exact.event.totalLines, 2);
 
   player.fragments = ['co', 'at', 'zz'];
   const extraLetters = applyWord(room, 'p1', 'coats', 1100, () => 0);
 
   assert.equal(extraLetters.event.gramOnly, false);
+  assert.equal(extraLetters.event.extraLetters, 1);
+  assert.equal(extraLetters.event.letterBonus, 0.5);
   assert.equal(extraLetters.event.totalLines, 5);
+
+  player.combo = 0;
+  player.fragments = ['th', 'he', 'zz'];
+  const overlapping = applyWord(room, 'p1', 'therian', 1200, () => 0);
+
+  assert.equal(overlapping.event.extraLetters, 4);
+  assert.equal(overlapping.event.totalLines, 6);
 });
 
 test('pending garbage is canceled before excess is sent and never clears locked garbage', () => {
@@ -109,10 +119,10 @@ test('pending garbage is canceled before excess is sent and never clears locked 
 
   const result = applyWord(room, 'p1', 'three', 1000, () => 0);
 
-  assert.equal(result.event.cancelledPending, 1);
+  assert.equal(result.event.cancelledPending, 2);
   assert.equal(result.event.defendedLocked, 0);
   assert.equal(result.event.outgoingLines, 0);
-  assert.equal(player.pendingGarbage, 3);
+  assert.equal(player.pendingGarbage, 2);
   assert.equal(player.lockedGarbage, 6);
   assert.equal(room.players.get('p2').pendingGarbage, 0);
 });
@@ -125,11 +135,11 @@ test('clean words defend locked garbage while still sending the full attack', ()
 
   const result = applyWord(room, 'p1', 'three', 1000, () => 0);
 
-  assert.equal(result.event.defendedLocked, 1);
+  assert.equal(result.event.defendedLocked, 2);
   assert.equal(result.event.cancelledPending, 0);
-  assert.equal(result.event.outgoingLines, 1);
-  assert.equal(player.lockedGarbage, 5);
-  assert.equal(room.players.get('p2').pendingGarbage, 1);
+  assert.equal(result.event.outgoingLines, 2);
+  assert.equal(player.lockedGarbage, 4);
+  assert.equal(room.players.get('p2').pendingGarbage, 2);
 });
 
 test('KO, Equal, and Random target modes choose living opponents by locked garbage', () => {
@@ -168,8 +178,8 @@ test('pending garbage extends its timer and locks at twenty lines', () => {
   target.pendingGarbageLockAt = 5000;
 
   applyWord(room, 'p1', 'three', 2000, () => 0);
-  assert.equal(target.pendingGarbage, 3);
-  assert.equal(target.pendingGarbageLockAt, 5500);
+  assert.equal(target.pendingGarbage, 4);
+  assert.equal(target.pendingGarbageLockAt, 6000);
 
   target.pendingGarbage = 20;
   target.pendingGarbageLockAt = 6000;
@@ -201,9 +211,9 @@ test('pending garbage timer extends only eight times while the queue keeps growi
     applyWord(room, 'p1', 'three', 2_000 + attack * 10, () => 0);
   }
 
-  assert.equal(target.pendingGarbage, 10);
+  assert.equal(target.pendingGarbage, 19);
   assert.equal(target.pendingGarbageExtensionCount, 8);
-  assert.equal(target.pendingGarbageLockAt, 9_000);
+  assert.equal(target.pendingGarbageLockAt, 13_000);
 });
 
 test('public state keeps fragments private and exposes health queues to everyone', () => {

@@ -113,6 +113,28 @@ function isGramOnlyWord(word, fragments) {
   return canBuildWordFromFragments(word, fragments);
 }
 
+function countAdditionalLetters(word, fragments) {
+  const matchingFragments = fragments.filter((fragment) => word.includes(fragment));
+  let mostCovered = 0;
+
+  function search(index, covered) {
+    if (index === matchingFragments.length) {
+      mostCovered = Math.max(mostCovered, covered.size);
+      return;
+    }
+
+    const fragment = matchingFragments[index];
+    for (let start = word.indexOf(fragment); start >= 0; start = word.indexOf(fragment, start + 1)) {
+      const nextCovered = new Set(covered);
+      for (let offset = 0; offset < fragment.length; offset += 1) nextCovered.add(start + offset);
+      search(index + 1, nextCovered);
+    }
+  }
+
+  search(0, new Set());
+  return word.length - mostCovered;
+}
+
 function chooseTarget(room, playerId, targetMode, random) {
   const candidates = activePlayers(room).filter((candidate) => candidate.id !== playerId);
   if (candidates.length === 0) return null;
@@ -201,7 +223,9 @@ export function applyWord(room, playerId, word, now = Date.now(), random = Math.
   const baseLines = LINE_VALUES[matched];
   const rawLines = baseLines + comboBonus;
   const gramOnly = isGramOnlyWord(normalizedWord, player.fragments);
-  const totalLines = gramOnly ? Math.floor(rawLines / 2) : rawLines;
+  const extraLetters = countAdditionalLetters(normalizedWord, player.fragments);
+  const letterBonus = extraLetters * 0.5;
+  const totalLines = Math.floor((gramOnly ? rawLines / 2 : rawLines) + letterBonus);
   const pendingBefore = player.pendingGarbage;
   const lockedBefore = player.lockedGarbage;
   let cancelledPending = 0;
@@ -248,6 +272,8 @@ export function applyWord(room, playerId, word, now = Date.now(), random = Math.
     comboAfter: player.combo,
     rawLines,
     gramOnly,
+    extraLetters,
+    letterBonus,
     lines: totalLines,
     totalLines,
     cancelledPending,
