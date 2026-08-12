@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lexicompetitive Rules</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell rules-page">
+      <header class="rules-header">
+        <a class="rules-link" href="/">BACK</a>
+        <h1>HOW TO PLAY</h1>
+      </header>
+
+      <div class="rules-grid">
+        <section class="rules-block">
+          <h2>01 / GOAL</h2>
+          <p>Be the last board standing.</p>
+          <p>Rooms are PVP and need two players to start.</p>
+        </section>
+
+        <section class="rules-block">
+          <h2>02 / GRAMS</h2>
+          <p>You hold three two-letter grams.</p>
+          <p>Submit a dictionary word containing at least one gram. Accepted words deal damage and give you three new grams.</p>
+        </section>
+
+        <section class="rules-block">
+          <h2>03 / ATTACK</h2>
+          <ul>
+            <li>1 gram = 1 line.</li>
+            <li>2 grams = 3 lines plus combo.</li>
+            <li>3 grams = 6 lines plus combo, sent to every living opponent.</li>
+            <li>A word made entirely by chaining your grams has its attack halved, rounded down.</li>
+          </ul>
+        </section>
+
+        <section class="rules-block">
+          <h2>04 / COMBO</h2>
+          <p>Two-gram words build combo up to 4.</p>
+          <p>One-gram words reset combo. Three-gram words cash it out, then reset it.</p>
+        </section>
+
+        <section class="rules-block">
+          <h2>05 / GARBAGE</h2>
+          <p>Incoming lines wait in pending for 4 seconds.</p>
+          <p>The timer can extend for 8 incoming attacks. Later attacks still add lines without extending the timer.</p>
+          <p>20 locked lines eliminates a player.</p>
+        </section>
+
+        <section class="rules-block">
+          <h2>06 / DEFENSE</h2>
+          <p>Pending garbage is canceled first.</p>
+          <p>With no pending garbage, your attack clears locked lines while still being sent in full.</p>
+        </section>
+
+        <section class="rules-block">
+          <h2>07 / TARGET</h2>
+          <ul>
+            <li>KO targets the opponent with the most locked lines.</li>
+            <li>EQUAL targets the opponent with the fewest locked lines.</li>
+            <li>RANDOM targets any living opponent.</li>
+            <li>Three-gram attacks always hit every living opponent.</li>
+          </ul>
+        </section>
+
+        <section class="rules-block">
+          <h2>08 / ROUND</h2>
+          <p>When the round ends, your WPM is shown.</p>
+          <p>The room stays open. The host can start another round.</p>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>

@@ -335,6 +335,7 @@ socket.on('game:event', (event) => {
     if (event.cancelledPending) message += ` -${event.cancelledPending}`;
     if (event.defendedLocked) message += ` /${event.defendedLocked}`;
     if (event.comboBonus) message += ` C${event.comboBonus}`;
+    if (event.gramOnly) message += ' HALF';
     addEvent(message);
   } else if (event.type === 'garbageLocked') {
     playGarbageLockedSounds(event);

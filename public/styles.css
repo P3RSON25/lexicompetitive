@@ -52,12 +52,23 @@ body.in-room .hero { display: none; }
 .hero { border-bottom: 2px solid #000000; margin-bottom: 2rem; padding-bottom: 1rem; }
 .hero h1 { margin: 0; font-size: clamp(2.2rem, 11vw, 9rem); letter-spacing: -0.14em; line-height: 0.8; }
 .hero p { margin: 1.2rem 0 0; font-size: 1rem; letter-spacing: 0.08em; }
+.rules-link { display: inline-block; margin-top: 1.5rem; border: 2px solid #000000; color: #000000; padding: 0.75rem 1rem; text-decoration: none; }
+.rules-link:hover { background: #000000; color: #fafafa; }
 .panel { border: 2px solid #000000; background: #fafafa; }
 .lobby-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .lobby-card { display: grid; align-content: start; gap: 1rem; min-height: 290px; padding: clamp(1.25rem, 4vw, 3rem); }
 .lobby-card + .lobby-card { border-left: 2px solid #000000; }
 .lobby-card h2 { margin: 0 0 1rem; font-size: clamp(2rem, 5vw, 4rem); letter-spacing: -0.08em; line-height: 0.85; }
 .lobby-card button { margin-top: auto; min-height: 4rem; font-size: 1.2rem; }
+.rules-header { border-bottom: 2px solid #000000; padding-bottom: 1.5rem; }
+.rules-header h1 { margin: 3rem 0 0; font-size: clamp(3rem, 9vw, 8rem); letter-spacing: -0.12em; line-height: 0.8; }
+.rules-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rules-block { min-height: 220px; border-bottom: 2px solid #000000; padding: 2rem 1.5rem 2rem 0; }
+.rules-block:nth-child(even) { border-left: 2px solid #000000; padding-left: 1.5rem; }
+.rules-block h2 { margin: 0 0 1.5rem; font-size: 1rem; letter-spacing: 0.04em; }
+.rules-block p, .rules-block li { max-width: 34rem; font-size: 1.1rem; line-height: 1.35; }
+.rules-block p { margin: 0 0 0.8rem; }
+.rules-block ul { display: grid; gap: 0.7rem; margin: 0; padding-left: 1.3rem; }
 
 .game-shell {
   display: flex;
@@ -189,6 +200,10 @@ body.in-room .hero { display: none; }
   .lobby-grid { grid-template-columns: 1fr; }
   .lobby-card { min-height: 220px; }
   .lobby-card + .lobby-card { border-top: 2px solid #000000; border-left: 0; }
+  .rules-header h1 { font-size: clamp(2.5rem, 14vw, 4rem); }
+  .rules-grid { grid-template-columns: 1fr; }
+  .rules-block, .rules-block:nth-child(even) { min-height: 0; border-left: 0; padding: 1.5rem 0; }
+  .rules-block p, .rules-block li { font-size: 1rem; }
   .game-topbar { align-items: flex-start; padding: 0.75rem; }
   .wordmark { font-size: 1.25rem; }
   .room-actions { margin-left: auto; }

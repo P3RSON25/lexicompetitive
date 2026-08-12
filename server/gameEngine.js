@@ -98,6 +98,21 @@ function normalizeSubmittedWord(word) {
   return typeof word === 'string' ? word.trim().toLowerCase() : '';
 }
 
+function canBuildWordFromFragments(word, fragments, offset = 0, used = new Set()) {
+  if (offset === word.length) return true;
+  for (let index = 0; index < fragments.length; index += 1) {
+    if (used.has(index) || !word.startsWith(fragments[index], offset)) continue;
+    used.add(index);
+    if (canBuildWordFromFragments(word, fragments, offset + fragments[index].length, used)) return true;
+    used.delete(index);
+  }
+  return false;
+}
+
+function isGramOnlyWord(word, fragments) {
+  return canBuildWordFromFragments(word, fragments);
+}
+
 function chooseTarget(room, playerId, targetMode, random) {
   const candidates = activePlayers(room).filter((candidate) => candidate.id !== playerId);
   if (candidates.length === 0) return null;
@@ -184,7 +199,9 @@ export function applyWord(room, playerId, word, now = Date.now(), random = Math.
   }
 
   const baseLines = LINE_VALUES[matched];
-  const totalLines = baseLines + comboBonus;
+  const rawLines = baseLines + comboBonus;
+  const gramOnly = isGramOnlyWord(normalizedWord, player.fragments);
+  const totalLines = gramOnly ? Math.floor(rawLines / 2) : rawLines;
   const pendingBefore = player.pendingGarbage;
   const lockedBefore = player.lockedGarbage;
   let cancelledPending = 0;
@@ -229,6 +246,8 @@ export function applyWord(room, playerId, word, now = Date.now(), random = Math.
     comboBefore,
     comboBonus,
     comboAfter: player.combo,
+    rawLines,
+    gramOnly,
     lines: totalLines,
     totalLines,
     cancelledPending,

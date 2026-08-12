@@ -80,6 +80,25 @@ test('two-gram combo bonus caps at four points', () => {
   assert.equal(player.linesSent, 4 + 5 + 6 + 7 + 7);
 });
 
+test('words made only from held grams deal half attack rounded down', () => {
+  const room = createBattle();
+  const player = room.players.get('p1');
+  player.fragments = ['co', 'at', 'zz'];
+
+  const exact = applyWord(room, 'p1', 'coat', 1000, () => 0);
+
+  assert.equal(exact.event.matched, 2);
+  assert.equal(exact.event.rawLines, 4);
+  assert.equal(exact.event.gramOnly, true);
+  assert.equal(exact.event.totalLines, 2);
+
+  player.fragments = ['co', 'at', 'zz'];
+  const extraLetters = applyWord(room, 'p1', 'coats', 1100, () => 0);
+
+  assert.equal(extraLetters.event.gramOnly, false);
+  assert.equal(extraLetters.event.totalLines, 5);
+});
+
 test('pending garbage is canceled before excess is sent and never clears locked garbage', () => {
   const room = createBattle();
   const player = room.players.get('p1');
