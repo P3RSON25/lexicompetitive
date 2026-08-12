@@ -107,6 +107,13 @@ test('words made only from held grams deal half attack rounded down', () => {
 
   assert.equal(overlapping.event.extraLetters, 4);
   assert.equal(overlapping.event.totalLines, 6);
+
+  player.fragments = ['th', 'zz', 'qq'];
+  const capped = applyWord(room, 'p1', 'thabcdefghij', 1300, () => 0);
+
+  assert.equal(capped.event.extraLetters, 10);
+  assert.equal(capped.event.letterBonus, 4);
+  assert.equal(capped.event.totalLines, 5);
 });
 
 test('pending garbage is canceled before excess is sent and never clears locked garbage', () => {

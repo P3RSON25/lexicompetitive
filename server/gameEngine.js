@@ -11,6 +11,7 @@ export const MAX_LOCKED_GARBAGE = 20;
 export const PENDING_GARBAGE_DELAY_MS = 4_000;
 export const PENDING_GARBAGE_EXTENSION_MS = 500;
 export const MAX_PENDING_GARBAGE_EXTENSIONS = 8;
+export const MAX_EXTRA_LETTER_BONUS_LINES = 4;
 
 const TARGET_MODE_SET = new Set(TARGET_MODES);
 const LINE_VALUES = { 1: 1, 2: 3, 3: 6 };
@@ -224,7 +225,7 @@ export function applyWord(room, playerId, word, now = Date.now(), random = Math.
   const rawLines = baseLines + comboBonus;
   const gramOnly = isGramOnlyWord(normalizedWord, player.fragments);
   const extraLetters = countAdditionalLetters(normalizedWord, player.fragments);
-  const letterBonus = extraLetters * 0.5;
+  const letterBonus = Math.min(MAX_EXTRA_LETTER_BONUS_LINES, extraLetters * 0.5);
   const totalLines = Math.floor((gramOnly ? rawLines / 2 : rawLines) + letterBonus);
   const pendingBefore = player.pendingGarbage;
   const lockedBefore = player.lockedGarbage;

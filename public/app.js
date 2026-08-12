@@ -420,5 +420,14 @@ wordInput.addEventListener('keydown', (event) => {
   sounds.play('keyPress');
 });
 
+wordInput.addEventListener('paste', (event) => {
+  event.preventDefault();
+  setStatus('NO PASTE', 'error');
+});
+
+wordInput.addEventListener('beforeinput', (event) => {
+  if (event.inputType === 'insertFromPaste') event.preventDefault();
+});
+
 setInterval(updatePendingTimer, 100);
 renderBoard();

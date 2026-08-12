@@ -8,7 +8,7 @@ Simple Node.js + Express + Socket.io multiplayer word game.
 - Each player holds three random common bigrams and receives three new ones after each accepted word.
 - One, two, and three matching grams deal 1, 3, and 6 base lines.
 - Words made entirely by chaining held grams have their attack halved, rounded down.
-- Every letter outside the matched gram letters adds 0.5 lines; the final attack is rounded down.
+- Every letter outside the matched gram letters adds 0.5 lines, up to a 4-line bonus; the final attack is rounded down.
 - Two-gram words build a combo up to 4; each combo point adds one line.
 - One-gram words reset combo, and three-gram words cash out combo and hit every living opponent.
 - Incoming garbage stays pending for four seconds, then locks onto the cosmetic 10 x 20 health board.
