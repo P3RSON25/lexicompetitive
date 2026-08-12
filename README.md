@@ -1,4 +1,4 @@
-# Word Assault Web
+# Lexicompetitive
 
 Simple Node.js + Express + Socket.io multiplayer word game.
 
