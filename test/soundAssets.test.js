@@ -18,6 +18,7 @@ const expectedSounds = [
   'kill.wav',
   'key press.wav',
   'join lobby.wav',
+  'game start.wav',
   'first combo.wav',
   'died.wav',
   'alert pending garbage over 10.wav',

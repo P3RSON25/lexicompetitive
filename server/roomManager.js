@@ -42,7 +42,7 @@ export class RoomManager {
     const room = this.rooms.get(code);
     if (!room) throw new Error('room_not_found');
     if (room.hostId !== socketId) throw new Error('host_only');
-    if (room.status !== 'lobby') throw new Error('room_already_started');
+    if (room.status !== 'lobby' && room.status !== 'finished') throw new Error('room_already_started');
     if (room.players.size < 2) throw new Error('need_opponent');
     startRoom(room, Date.now(), this.random);
     return room;

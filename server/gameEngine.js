@@ -39,6 +39,7 @@ export function createPlayer(id, name, random = Math.random) {
     score: 0,
     wordsPlayed: 0,
     linesSent: 0,
+    kills: 0,
     status: 'playing',
   };
 }
@@ -75,6 +76,7 @@ export function startRoom(room, now = Date.now(), random = Math.random) {
     player.score = 0;
     player.wordsPlayed = 0;
     player.linesSent = 0;
+    player.kills = 0;
     player.status = 'playing';
   }
 }
@@ -251,6 +253,10 @@ export function tickRoom(room, now = Date.now()) {
     ) continue;
 
     const garbage = lockPendingGarbage(player);
+    if (player.status === 'eliminated' && garbage.attackerId) {
+      const attacker = room.players.get(garbage.attackerId);
+      if (attacker && attacker.id !== player.id) attacker.kills += 1;
+    }
     events.push({
       type: 'garbageLocked',
       playerId: player.id,
@@ -274,7 +280,11 @@ export function tickRoom(room, now = Date.now()) {
   return events;
 }
 
-function publicPlayer(player) {
+function publicPlayer(room, player, now = Date.now()) {
+  const roundEnd = room.status === 'finished' && room.finishedAt !== null ? room.finishedAt : now;
+  const elapsedMinutes = room.startedAt !== null
+    ? Math.max(1_000, roundEnd - room.startedAt) / 60_000
+    : 0;
   return {
     id: player.id,
     name: player.name,
@@ -285,12 +295,14 @@ function publicPlayer(player) {
     score: player.score,
     wordsPlayed: player.wordsPlayed,
     linesSent: player.linesSent,
+    kills: player.kills,
+    wpm: elapsedMinutes ? Math.round(player.wordsPlayed / elapsedMinutes) : 0,
     status: player.status,
   };
 }
 
 export function publicState(room, selfId = null) {
-  const players = [...room.players.values()].map(publicPlayer);
+  const players = [...room.players.values()].map((player) => publicPlayer(room, player));
   const self = room.players.get(selfId);
   return {
     code: room.code,
@@ -301,6 +313,6 @@ export function publicState(room, selfId = null) {
     endAt: room.endAt,
     winnerId: room.winnerId,
     players,
-    self: self ? { ...publicPlayer(self), fragments: [...self.fragments], targetMode: self.targetMode } : null,
+    self: self ? { ...publicPlayer(room, self), fragments: [...self.fragments], targetMode: self.targetMode } : null,
   };
 }

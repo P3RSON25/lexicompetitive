@@ -163,6 +163,7 @@ test('pending garbage extends its timer and locks at twenty lines', () => {
   assert.equal(target.status, 'eliminated');
   assert.equal(room.status, 'finished');
   assert.equal(room.winnerId, 'p1');
+  assert.equal(room.players.get('p1').kills, 1);
   assert.deepEqual(events.map((event) => event.type), ['garbageLocked', 'gameFinished']);
   assert.equal(events[0].attackerId, 'p1');
   assert.equal(events[0].attackerName, 'One');
@@ -183,6 +184,25 @@ test('public state keeps fragments private and exposes health queues to everyone
   assert.equal('fragments' in state.players[0], false);
   assert.deepEqual(state.self.fragments, player.fragments);
   assert.equal(state.self.targetMode, 'equal');
+});
+
+test('public state reports round WPM and restarting a round clears round stats', () => {
+  const room = createBattle();
+  const player = room.players.get('p1');
+  player.fragments = ['th', 'zz', 'qq'];
+
+  applyWord(room, 'p1', 'three', 61_000, () => 0);
+  room.status = 'finished';
+  room.winnerId = 'p1';
+  room.finishedAt = 61_000;
+  const finished = publicState(room, 'p1');
+  assert.equal(finished.self.wpm, 1);
+
+  startRoom(room, 100_000, () => 0);
+  assert.equal(room.status, 'playing');
+  assert.equal(room.players.get('p1').wordsPlayed, 0);
+  assert.equal(room.players.get('p1').kills, 0);
+  assert.equal(publicState(room, 'p1').self.wpm, 0);
 });
 
 test('word submission reports the actual room lifecycle state', () => {

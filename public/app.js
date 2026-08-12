@@ -10,6 +10,10 @@ const opponents = $('#opponents');
 const eventLog = $('#event-log');
 const board = $('#board');
 const wordInput = $('#word-input');
+const roundResult = $('#round-result');
+const roundResultTitle = $('#round-result-title');
+const roundResultWpm = $('#round-result-wpm');
+const roundStartButton = $('#round-start-button');
 const targetButtons = [...document.querySelectorAll('[data-target]')];
 const boardCells = [];
 const ROWS = 20;
@@ -36,6 +40,7 @@ const SOUND_FILES = {
   invalidWord: 'not real word entered.wav',
   joinLobby: 'join lobby.wav',
   leaveLobby: 'leave lobby.wav',
+  gameStart: 'game start.wav',
   kill: 'kill.wav',
   keyPress: 'key press.wav',
   died: 'died.wav',
@@ -254,6 +259,9 @@ function renderState(state) {
     : state.status === 'finished' ? 'DONE' : 'WAITING';
   $('#start-button').hidden = state.hostId !== socket.id || state.status !== 'lobby';
   $('#start-button').disabled = state.players.length < 2;
+  roundStartButton.hidden = state.hostId !== socket.id || state.status !== 'finished';
+  roundStartButton.disabled = state.players.length < 2;
+  roundResult.hidden = state.status !== 'finished';
   $('#word-input').disabled = !canPlay;
   $('#word-form button').disabled = !canPlay;
   renderTargetMode(self?.targetMode, canChangeTarget);
@@ -264,13 +272,18 @@ function renderState(state) {
   $('#pending-count').textContent = pendingGarbage;
   $('#pending-fill').style.height = `${Math.min(100, Math.round((pendingGarbage / ROWS) * 100))}%`;
   $('#combo').textContent = self?.combo || 0;
+  $('#kills').textContent = self?.kills || 0;
   $('#lines-sent').textContent = self?.linesSent || 0;
   $('#words-played').textContent = self?.wordsPlayed || 0;
   renderOpponentCards(state);
   renderPlayers(state);
 
   if (state.status === 'finished') {
-    setStatus(state.winnerId === socket.id ? 'Victory. You are the last board standing.' : 'Match complete.', 'success');
+    const result = state.winnerId === socket.id ? 'win' : state.winnerId ? 'lose' : 'draw';
+    roundResult.dataset.result = result;
+    roundResultTitle.textContent = result === 'win' ? 'WIN' : result === 'lose' ? 'LOSE' : 'DRAW';
+    roundResultWpm.textContent = self?.wpm || 0;
+    setStatus(result === 'win' ? 'WIN' : result === 'lose' ? 'LOSE' : 'DRAW', result === 'win' ? 'success' : 'error');
   } else if (previousStatus !== state.status) {
     setStatus(state.status === 'playing' ? 'Battle live. Find a gram and attack.' : 'Waiting for the host to start the battle.');
   }
@@ -329,6 +342,7 @@ socket.on('game:event', (event) => {
   } else if (event.type === 'gameFinished') {
     addEvent(event.winnerId ? 'DONE' : 'DRAW');
   } else if (event.type === 'gameStarted') {
+    sounds.play('gameStart');
     addEvent('LIVE');
   } else if (event.type === 'playerJoined') {
     addEvent('+ PLAYER');
@@ -369,8 +383,14 @@ $('#join-form').addEventListener('submit', (event) => {
 });
 
 $('#start-button').addEventListener('click', () => {
-  socket.emit('room:start', { code: currentState?.code }, handleRoomResponse);
+  startRound();
 });
+
+function startRound() {
+  socket.emit('room:start', { code: currentState?.code }, handleRoomResponse);
+}
+
+roundStartButton.addEventListener('click', startRound);
 
 $('#leave-button').addEventListener('click', () => {
   sounds.play('leaveLobby');

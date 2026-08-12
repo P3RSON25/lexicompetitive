@@ -64,6 +64,7 @@ body.in-room .hero { display: none; }
   min-height: 100dvh;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
   background: #fafafa;
 }
 .game-topbar {
@@ -112,6 +113,9 @@ body.in-room .hero { display: none; }
 .pending-meter > span:last-child { font-size: 0.6rem; letter-spacing: 0.05em; text-align: center; }
 .combo-meter { display: flex; width: 62px; height: min(64vh, 620px); flex-direction: column; align-items: center; justify-content: center; gap: 0.65rem; }
 .combo-meter strong { font-size: 3rem; letter-spacing: -0.1em; line-height: 0.8; }
+.kill-readout { display: grid; gap: 0.35rem; border-top: 2px solid #000000; padding-top: 0.6rem; text-align: center; }
+.kill-readout strong { font-size: 1.7rem; }
+.kill-readout span { font-size: 0.55rem; letter-spacing: 0.08em; }
 .board-frame { position: relative; width: min(32vw, 360px); height: min(64vh, 620px); min-height: 430px; border: 3px solid #000000; background: #fafafa; }
 .tetris-board { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(10, 1fr); grid-template-rows: repeat(20, 1fr); gap: 2px; padding: 6px; background: #fafafa; }
 .board-cell { border: 1px solid #000000; background: #fafafa; }
@@ -146,6 +150,17 @@ body.in-room .hero { display: none; }
 .personal-stat { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
 .personal-stat strong { font-size: 2rem; letter-spacing: -0.08em; line-height: 0.8; }
 .personal-stat span { font-size: 0.62rem; letter-spacing: 0.08em; }
+.round-result { position: absolute; inset: 0; z-index: 10; display: grid; place-items: center; background: #fafafa; padding: 1rem; }
+.round-result[data-result="lose"] { background: #000000; color: #fafafa; }
+.round-result[data-result="draw"] { background: #000000; color: #fafafa; }
+.round-result-card { display: grid; width: min(100%, 520px); gap: 1rem; border: 3px solid #000000; padding: clamp(1.5rem, 5vw, 3.5rem); text-align: center; }
+.round-result[data-result="lose"] .round-result-card, .round-result[data-result="draw"] .round-result-card { border-color: #fafafa; }
+.round-result-title { margin: 0; font-size: clamp(4rem, 14vw, 9rem); letter-spacing: -0.12em; line-height: 0.75; }
+.round-wpm { display: flex; align-items: baseline; justify-content: center; gap: 0.5rem; border-top: 2px solid currentColor; padding-top: 1rem; }
+.round-wpm strong { font-size: clamp(2.5rem, 8vw, 5rem); letter-spacing: -0.1em; line-height: 0.8; }
+.round-wpm span { font-size: 0.8rem; letter-spacing: 0.1em; }
+.round-result button { margin-top: 1rem; }
+.round-result[data-result="lose"] button, .round-result[data-result="draw"] button { border-color: #fafafa; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 
 @media (max-width: 900px) {
@@ -187,6 +202,7 @@ body.in-room .hero { display: none; }
   .pending-meter, .combo-meter { width: 36px; }
   .pending-track { width: 16px; height: min(100vw, 420px); }
   .combo-meter strong { font-size: 2.3rem; }
+  .kill-readout strong { font-size: 1.35rem; }
   .board-frame { width: min(62vw, 260px); height: min(124vw, 520px); min-height: 340px; border-width: 2px; }
   .board-overlay { padding: 0.55rem; }
   .health-readout strong { font-size: 2.1rem; }

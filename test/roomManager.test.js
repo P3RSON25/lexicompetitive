@@ -31,3 +31,19 @@ test('PVP rooms require an opponent before the host can start', () => {
   manager.join(room.code, 'socket-b', 'Bob');
   assert.equal(manager.start(room.code, 'socket-a').status, 'playing');
 });
+
+test('the host can start another round after a finished round', () => {
+  const manager = new RoomManager({ random: () => 0 });
+  const room = manager.create('socket-a', 'Alice', 'battle');
+  manager.join(room.code, 'socket-b', 'Bob');
+  manager.start(room.code, 'socket-a');
+  room.status = 'finished';
+  room.players.get('socket-a').wordsPlayed = 4;
+  room.players.get('socket-a').kills = 1;
+
+  const restarted = manager.start(room.code, 'socket-a');
+
+  assert.equal(restarted.status, 'playing');
+  assert.equal(restarted.players.get('socket-a').wordsPlayed, 0);
+  assert.equal(restarted.players.get('socket-a').kills, 0);
+});

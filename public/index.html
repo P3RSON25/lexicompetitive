@@ -97,6 +97,10 @@
               <div class="combo-meter" aria-label="Your combo">
                 <span class="meter-label">COMBO</span>
                 <strong id="combo">0</strong>
+                <div class="kill-readout">
+                  <strong id="kills">0</strong>
+                  <span>KILLS</span>
+                </div>
               </div>
             </div>
 
@@ -115,6 +119,15 @@
               <div class="personal-stat"><strong id="words-played">0</strong><span>WORDS</span></div>
             </div>
           </aside>
+        </div>
+
+        <div id="round-result" class="round-result" hidden>
+          <div class="round-result-card">
+            <span class="meter-label">ROUND</span>
+            <h2 id="round-result-title">WIN</h2>
+            <div class="round-wpm"><strong id="round-result-wpm">0</strong><span>WPM</span></div>
+            <button id="round-start-button" type="button" hidden>START AGAIN</button>
+          </div>
         </div>
       </section>
     </main>
