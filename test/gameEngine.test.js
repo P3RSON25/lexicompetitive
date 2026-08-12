@@ -169,6 +169,24 @@ test('pending garbage extends its timer and locks at twenty lines', () => {
   assert.equal(events[0].attackerName, 'One');
 });
 
+test('pending garbage timer extends only eight times while the queue keeps growing', () => {
+  const room = createBattle();
+  const player = room.players.get('p1');
+  const target = room.players.get('p2');
+  target.pendingGarbage = 1;
+  target.pendingGarbageLockAt = 5_000;
+  target.pendingGarbageExtensionCount = 0;
+
+  for (let attack = 1; attack <= 9; attack += 1) {
+    player.fragments = ['th', 'zz', 'qq'];
+    applyWord(room, 'p1', 'three', 2_000 + attack * 10, () => 0);
+  }
+
+  assert.equal(target.pendingGarbage, 10);
+  assert.equal(target.pendingGarbageExtensionCount, 8);
+  assert.equal(target.pendingGarbageLockAt, 9_000);
+});
+
 test('public state keeps fragments private and exposes health queues to everyone', () => {
   const room = createBattle();
   const player = room.players.get('p1');

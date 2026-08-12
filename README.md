@@ -10,6 +10,7 @@ Simple Node.js + Express + Socket.io multiplayer word game.
 - Two-gram words build a combo up to 4; each combo point adds one line.
 - One-gram words reset combo, and three-gram words cash out combo and hit every living opponent.
 - Incoming garbage stays pending for four seconds, then locks onto the cosmetic 10 x 20 health board.
+- The pending deadline can extend for eight additional incoming attacks; later attacks still add garbage without extending the timer.
 - Words cancel pending garbage first; with no pending garbage, they clear locked garbage while still sending the full attack.
 - KO, Equal, and Random routing select a living opponent for one- and two-gram attacks.
 

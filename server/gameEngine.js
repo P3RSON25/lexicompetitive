@@ -10,6 +10,7 @@ export const MAX_COMBO = 4;
 export const MAX_LOCKED_GARBAGE = 20;
 export const PENDING_GARBAGE_DELAY_MS = 4_000;
 export const PENDING_GARBAGE_EXTENSION_MS = 500;
+export const MAX_PENDING_GARBAGE_EXTENSIONS = 8;
 
 const TARGET_MODE_SET = new Set(TARGET_MODES);
 const LINE_VALUES = { 1: 1, 2: 3, 3: 6 };
@@ -33,6 +34,7 @@ export function createPlayer(id, name, random = Math.random) {
     lockedGarbage: 0,
     pendingGarbage: 0,
     pendingGarbageLockAt: null,
+    pendingGarbageExtensionCount: 0,
     pendingAttackerId: null,
     pendingAttackerName: null,
     targetMode: 'ko',
@@ -70,6 +72,7 @@ export function startRoom(room, now = Date.now(), random = Math.random) {
     player.lockedGarbage = 0;
     player.pendingGarbage = 0;
     player.pendingGarbageLockAt = null;
+    player.pendingGarbageExtensionCount = 0;
     player.pendingAttackerId = null;
     player.pendingAttackerName = null;
     player.targetMode = 'ko';
@@ -115,8 +118,10 @@ function queueGarbage(player, lines, now, attacker) {
   if (lines <= 0 || player.status !== 'playing') return;
   if (player.pendingGarbage === 0) {
     player.pendingGarbageLockAt = now + PENDING_GARBAGE_DELAY_MS;
-  } else {
+    player.pendingGarbageExtensionCount = 0;
+  } else if ((player.pendingGarbageExtensionCount || 0) < MAX_PENDING_GARBAGE_EXTENSIONS) {
     player.pendingGarbageLockAt += lines * PENDING_GARBAGE_EXTENSION_MS;
+    player.pendingGarbageExtensionCount = (player.pendingGarbageExtensionCount || 0) + 1;
   }
   player.pendingGarbage += lines;
   player.pendingAttackerId = attacker.id;
@@ -131,6 +136,7 @@ function lockPendingGarbage(player) {
 
   player.pendingGarbage = 0;
   player.pendingGarbageLockAt = null;
+  player.pendingGarbageExtensionCount = 0;
   player.pendingAttackerId = null;
   player.pendingAttackerName = null;
   player.lockedGarbage = Math.min(MAX_LOCKED_GARBAGE, player.lockedGarbage + lines);
@@ -189,6 +195,7 @@ export function applyWord(room, playerId, word, now = Date.now(), random = Math.
     player.pendingGarbage -= cancelledPending;
     if (player.pendingGarbage === 0) {
       player.pendingGarbageLockAt = null;
+      player.pendingGarbageExtensionCount = 0;
       player.pendingAttackerId = null;
       player.pendingAttackerName = null;
     }
